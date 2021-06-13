@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+  <div style="visibility: hidden; position:absolute" id="webcam-container"></div>
+  <div id="text"><h3>카메라를 정면으로 바라봐 주세요</h3></div>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+  <script type="text/javascript">
+
+    // 학습 모델 링크 (업로드됨)
+    const URL = "https://teachablemachine.withgoogle.com/models/ZPGrSYB2S/";
+
+    let model, webcam, labelContainer, maxPredictions;
+
+    // 모델 구축과 카메라 설정,실행 함수, 핵심이 되는 함수
+    async function init() {
+      const modelURL = URL + "model.json";
+      const metadataURL = URL + "metadata.json";
+
+      //await : 자바스크립트의 비동기 처리 패턴, 싱글스레드 기반의 자바스크립트 = 동기식 처리가 필요
+      //가독성을 높여줌
+      model = await tmImage.load(modelURL, metadataURL);
+      maxPredictions = model.getTotalClasses();
+
+      // 웹캠 설정, 실행
+      const flip = true;
+      webcam = new tmImage.Webcam(200, 200, flip);
+      await webcam.setup();
+      await webcam.play();
+      window.requestAnimationFrame(loop); //동영상이기 때문에 지속적으로 판별
+
+      document.getElementById("webcam-container").appendChild(webcam.canvas);
+    }
+
+    //웹캠 업데이트, 예측함수 실행
+    async function loop() {
+      webcam.update();
+      await predict();
+      window.requestAnimationFrame(loop);
+    }
+
+    // 예측 함수
+    async function predict() {
+
+      //변수 prediction : 요소의 확률을 배열 형태로 저장함
+      //[classname, probability]로 2차원
+      const prediction = await model.predict(webcam.canvas);
+
+      //착용 확률에 따른 안내문구 출력 / 확인용 콘솔 출력
+      if (prediction[0].probability >= 0.9) {
+        //console.log(prediction[0].probability);
+        //console.log("YES");
+        document.getElementById('text').innerHTML = '착용';
+      } else {
+        //console.log(prediction[0].probability);
+        //console.log("NO");
+        document.getElementById('text').innerHTML = '미착용';
+      }
+    }
+    init(); // 웹페이지가 켜지면서 동시에 실행되도록
+  </script>
+
+</body>
+
+</html>
